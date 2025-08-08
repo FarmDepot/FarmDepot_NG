@@ -1,0 +1,7 @@
+streamlit
+pillow
+pandas
+requests
+speechrecognition
+pyaudio
+pyttsx3

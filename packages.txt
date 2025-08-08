@@ -1,0 +1,7 @@
+portaudio19-dev
+python3-pyaudio
+espeak
+espeak-data
+libespeak1
+libespeak-dev
+ffmpeg
