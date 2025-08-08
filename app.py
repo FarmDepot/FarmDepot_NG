@@ -1679,7 +1679,7 @@ def render_footer():
         border-radius: 10px;
     '>
         <p style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
-            &copy; 2024 <strong>FARMDEPOT_NG</strong>. All rights reserved.
+            &copy; 2025 <strong>FARMDEPOT_NG</strong>. All rights reserved.
         </p>
         <p style='font-size: 0.9rem; color: #888;'>
              Connecting Farmers, Traders, and Consumers Across Nigeria 
