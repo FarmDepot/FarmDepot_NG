@@ -93,6 +93,8 @@ def init_database():
     conn.commit()
     conn.close()
 
+init_database()
+
 # Utility functions
 def hash_password(password):
     """Hash password using SHA-256"""
@@ -115,26 +117,17 @@ class VoiceAssistant:
         try:
             self.recognizer = sr.Recognizer()
             self.microphone = sr.Microphone()
-            
-            # Initialize text-to-speech
             self.tts_engine = pyttsx3.init()
-            
-            # Configure TTS settings
             voices = self.tts_engine.getProperty('voices')
             if voices:
-                # Try to set a female voice if available
                 for voice in voices:
                     if 'female' in voice.name.lower() or 'zira' in voice.name.lower():
                         self.tts_engine.setProperty('voice', voice.id)
                         break
-            
-            self.tts_engine.setProperty('rate', 150)  # Speech rate
-            self.tts_engine.setProperty('volume', 0.8)  # Volume level
-            
-            # Adjust for ambient noise
+            self.tts_engine.setProperty('rate', 150)
+            self.tts_engine.setProperty('volume', 0.8)
             with self.microphone as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=1)
-                
         except Exception as e:
             st.error(f"Error initializing voice components: {str(e)}")
             self.available = False
@@ -143,10 +136,9 @@ class VoiceAssistant:
         """Listen for speech input and convert to text"""
         if not self.available:
             return "Voice recognition not available. Please install: pip install speechrecognition pyaudio pyttsx3"
-        
         try:
             with self.microphone as source:
-                st.info("🎤 Listening... Please speak now!")
+                st.info(" Listening... Please speak now!")
                 
                 # Listen for audio input
                 audio = self.recognizer.listen(
@@ -155,12 +147,11 @@ class VoiceAssistant:
                     phrase_time_limit=phrase_time_limit
                 )
                 
-                st.info("🔄 Processing your speech...")
+                st.info(" Processing your speech...")
                 
                 # Recognize speech using Google Speech Recognition
                 text = self.recognizer.recognize_google(audio)
                 return text.lower()
-                
         except sr.WaitTimeoutError:
             return "Timeout: No speech detected. Please try again."
         except sr.UnknownValueError:
@@ -174,7 +165,6 @@ class VoiceAssistant:
         """Convert text to speech"""
         if not self.available:
             return False
-        
         try:
             self.tts_engine.say(text)
             self.tts_engine.runAndWait()
@@ -308,7 +298,6 @@ def process_voice_command(voice_text):
         'query': voice_text
     }
 
-# Translation placeholder (simplified)
 def translate_text(text, target_lang='en'):
     """Simple translation placeholder"""
     translations = {
@@ -341,42 +330,37 @@ def authenticate_user(username, password):
     """Authenticate user login"""
     conn = sqlite3.connect('farmdepot.db')
     c = conn.cursor()
-    
     hashed_password = hash_password(password)
     c.execute("SELECT * FROM users WHERE username = ? AND password = ?", 
               (username, hashed_password))
     user = c.fetchone()
     conn.close()
-    
     return user
 
 def register_user(username, email, password, user_type, phone="", location=""):
     """Register new user"""
     conn = sqlite3.connect('farmdepot.db')
     c = conn.cursor()
-    
     try:
         hashed_password = hash_password(password)
         c.execute("""INSERT INTO users (username, email, password, user_type, phone, location)
                      VALUES (?, ?, ?, ?, ?, ?)""",
                   (username, email, hashed_password, user_type, phone, location))
         conn.commit()
-        conn.close()
         return True
     except sqlite3.IntegrityError:
-        conn.close()
         return False
+    finally:
+        conn.close()
 
 # Ad management functions
 def post_ad(user_id, title, description, category, price, location, contact_info, image_path=None, ad_type='regular'):
     """Post new advertisement"""
     conn = sqlite3.connect('farmdepot.db')
     c = conn.cursor()
-    
     c.execute("""INSERT INTO ads (user_id, title, description, category, price, location, contact_info, image_path, ad_type)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
               (user_id, title, description, category, price, location, contact_info, image_path, ad_type))
-    
     conn.commit()
     conn.close()
 
@@ -384,40 +368,31 @@ def search_ads(query="", category="", location=""):
     """Search advertisements"""
     conn = sqlite3.connect('farmdepot.db')
     c = conn.cursor()
-    
     sql = "SELECT * FROM ads WHERE status = 'active'"
     params = []
-    
     if query:
         sql += " AND (title LIKE ? OR description LIKE ?)"
         params.extend([f"%{query}%", f"%{query}%"])
-    
     if category and category != "All Categories":
         sql += " AND category = ?"
         params.append(category)
-    
     if location:
         sql += " AND location LIKE ?"
         params.append(f"%{location}%")
-    
     sql += " ORDER BY created_at DESC"
-    
     c.execute(sql, params)
     ads = c.fetchall()
     conn.close()
-    
     return ads
 
 def get_ads_by_type(ad_type='regular', limit=10):
     """Get ads by type (promoted, top, regular)"""
     conn = sqlite3.connect('farmdepot.db')
     c = conn.cursor()
-    
     c.execute("SELECT * FROM ads WHERE ad_type = ? AND status = 'active' ORDER BY created_at DESC LIMIT ?",
               (ad_type, limit))
     ads = c.fetchall()
     conn.close()
-    
     return ads
 
 # UI Components
@@ -698,31 +673,27 @@ def render_sidebar():
     """Render sidebar with authentication"""
     st.sidebar.markdown("## 🌾 FARMDEPOT_NG")
     st.sidebar.markdown("*Nigeria's Agricultural Marketplace*")
-    
     if not st.session_state.user_logged_in:
-        # Login/Register form
         auth_tab = st.sidebar.radio("Choose Action", ["Login", "Register"])
-        
         if auth_tab == "Login":
             with st.sidebar.form("login_form"):
-                st.markdown("### 🔐 Login")
+                st.markdown("###  Login")
                 username = st.text_input("Username")
                 password = st.text_input("Password", type="password")
                 
-                if st.form_submit_button("🚪 Login", use_container_width=True):
+                if st.form_submit_button(" Login", use_container_width=True):
                     if username and password:
                         user = authenticate_user(username, password)
                         if user:
                             st.session_state.user_logged_in = True
                             st.session_state.user_info = user
-                            st.success("✅ Login successful!")
+                            st.success(" Login successful!")
                             st.rerun()
                         else:
-                            st.error("❌ Invalid credentials!")
+                            st.error(" Invalid credentials!")
                     else:
                         st.error("Please fill in all fields")
-        
-        else:  # Register
+        else:
             with st.sidebar.form("register_form"):
                 st.markdown("### 📝 Register")
                 username = st.text_input("Username")
@@ -732,39 +703,38 @@ def render_sidebar():
                 phone = st.text_input("Phone Number")
                 location = st.text_input("Location")
                 
-                if st.form_submit_button("📝 Register", use_container_width=True):
+                if st.form_submit_button(" Register", use_container_width=True):
                     if username and email and password:
                         if register_user(username, email, password, user_type, phone, location):
-                            st.success("✅ Registration successful! Please login.")
+                            st.success(" Registration successful! Please login.")
                         else:
-                            st.error("❌ Username or email already exists!")
+                            st.error(" Username or email already exists!")
                     else:
-                        st.error("Please fill in required fields")
-    
+                        st.error("Please fill in all required fields")
     else:
         # User is logged in
         user_info = st.session_state.user_info
         st.sidebar.success(f"Welcome, **{user_info[1]}**!")
         st.sidebar.info(f"**Type:** {user_info[4]}")
         
-        if st.sidebar.button("🚪 Logout", use_container_width=True):
+        if st.sidebar.button(" Logout", use_container_width=True):
             st.session_state.user_logged_in = False
             st.session_state.user_info = None
-            st.success("Logged out successfully!")
+            st.sidebar.info("Logged out.")
             st.rerun()
         
         # Quick actions
-        st.sidebar.markdown("### ⚡ Quick Actions")
-        if st.sidebar.button("📝 Post New Ad", use_container_width=True):
+        st.sidebar.markdown("###  Quick Actions")
+        if st.sidebar.button(" Post New Ad", use_container_width=True):
             st.session_state.current_page = "Post Ad"
             st.rerun()
         
-        if st.sidebar.button("🔍 View All Ads", use_container_width=True):
+        if st.sidebar.button(" View All Ads", use_container_width=True):
             st.session_state.current_page = "Ads List"
             st.rerun()
     
     # Language selection
-    st.sidebar.markdown("### 🌍 Language / Harshe / Ede / Asụsụ")
+    st.sidebar.markdown("###  Language / Harshe / Ede / Ass")
     language = st.sidebar.selectbox(
         "Select Language",
         ["English", "Hausa", "Yoruba", "Igbo"],
@@ -772,7 +742,7 @@ def render_sidebar():
     )
     
     # Quick stats
-    st.sidebar.markdown("### 📊 Quick Stats")
+    st.sidebar.markdown("###  Quick Stats")
     conn = sqlite3.connect('farmdepot.db')
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM ads WHERE status = 'active'")
@@ -797,7 +767,7 @@ def home_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 🏆 Promoted Ads")
+        st.markdown("###  Promoted Ads")
         promoted_ads = get_ads_by_type('promoted', 3)
         if promoted_ads:
             display_ads(promoted_ads)
@@ -805,7 +775,7 @@ def home_page():
             st.info("No promoted ads available")
     
     with col2:
-        st.markdown("### ⭐ Top Ads")
+        st.markdown("###  Top Ads")
         top_ads = get_ads_by_type('top', 3)
         if top_ads:
             display_ads(top_ads)
@@ -813,7 +783,7 @@ def home_page():
             st.info("No top ads available")
     
     # Regular ads
-    st.markdown("### 📋 Recent Ads")
+    st.markdown("###  Recent Ads")
     regular_ads = get_ads_by_type('regular', 6)
     if regular_ads:
         display_ads(regular_ads)
@@ -822,7 +792,7 @@ def home_page():
     
     # Partners section
     st.markdown("---")
-    st.markdown("### 🤝 Our Trusted Partners")
+    st.markdown("###  Our Trusted Partners")
     partner_cols = st.columns(4)
     partners = [
         {"name": "Nigerian Agricultural Bank", "desc": "Financial Services"},
@@ -850,22 +820,22 @@ def home_page():
 def post_ad_page():
     """Render post advertisement page"""
     if not st.session_state.user_logged_in:
-        st.warning("⚠️ Please login to post an advertisement.")
+        st.warning(" Please login to post an advertisement.")
         st.info("Use the sidebar to login or register as a new user.")
         return
     
-    st.markdown("## 📝 Post New Advertisement")
+    st.markdown("##  Post New Advertisement")
     st.markdown("*Create your agricultural product listing*")
     
     # Voice posting option
-    with st.expander("🎤 Voice Posting", expanded=False):
-        st.markdown("#### 🎙️ Post Advertisement Using Voice")
+    with st.expander(" Voice Posting", expanded=False):
+        st.markdown("####  Post Advertisement Using Voice")
         
         voice_assistant = VoiceAssistant()
         
         if voice_assistant.available:
-            st.success("✅ Voice recognition is available!")
-            st.info("📝 **Instructions:** Say something like 'I want to sell fresh tomatoes from Lagos for 5000 naira per basket'")
+            st.success(" Voice recognition is available!")
+            st.info(" **Instructions:** Say something like 'I want to sell fresh tomatoes from Lagos for 5000 naira per basket'")
             
             col1, col2 = st.columns([2, 1])
             
@@ -878,12 +848,12 @@ def post_ad_page():
                 """)
             
             with col2:
-                if st.button("🎤 Start Voice Input", key="voice_post_btn", use_container_width=True):
-                    with st.spinner("🎤 Listening for your advertisement..."):
+                if st.button(" Start Voice Input", key="voice_post_btn", use_container_width=True):
+                    with st.spinner(" Listening for your advertisement..."):
                         voice_text = voice_assistant.listen_for_speech()
                     
                     if voice_text and not any(word in voice_text.lower() for word in ['error', 'timeout', 'not available']):
-                        st.success(f"✅ Voice input received: '{voice_text}'")
+                        st.success(f" Voice input received: '{voice_text}'")
                         
                         # Parse the voice input to extract product details
                         parsed_data = parse_voice_ad_input(voice_text)
@@ -896,10 +866,10 @@ def post_ad_page():
                         feedback = f"I understood you want to sell {parsed_data.get('title', 'a product')}. Please review the auto-filled form below."
                         voice_assistant.text_to_speech(feedback)
                         
-                        st.info("📝 Form has been auto-filled based on your voice input. Please review and submit.")
+                        st.info(" Form has been auto-filled based on your voice input. Please review and submit.")
         else:
             # Fallback to demo mode
-            st.warning("⚠️ Voice recognition not available. Using demo mode.")
+            st.warning(" Voice recognition not available. Using demo mode.")
             st.info("Install required packages: `pip install speechrecognition pyaudio pyttsx3`")
             
             voice_commands = [
@@ -911,15 +881,15 @@ def post_ad_page():
             
             selected_voice = st.selectbox("Select Demo Voice Command", voice_commands)
             
-            if st.button("🎤 Process Demo Voice Command", key="demo_post_btn"):
+            if st.button(" Process Demo Voice Command", key="demo_post_btn"):
                 # Parse demo command and auto-fill form
                 parsed_data = parse_voice_ad_input(selected_voice)
                 for key, value in parsed_data.items():
                     st.session_state[f'voice_{key}'] = value
-                st.success("✅ Demo voice command processed! Form auto-filled below.")
+                st.success(" Demo voice command processed! Form auto-filled below.")
     
     # Manual form
-    st.markdown("### ✍️ Product Details")
+    st.markdown("###  Product Details")
     
     with st.form("post_ad_form"):
         col1, col2 = st.columns(2)
@@ -942,7 +912,7 @@ def post_ad_page():
             category = st.selectbox("Category *", categories_list, index=default_index)
             
             price = st.number_input(
-                "Price (₦) *", 
+                "Price () *", 
                 min_value=0.0, 
                 step=100.0,
                 value=float(st.session_state.get('voice_price', 0.0))
@@ -971,9 +941,9 @@ def post_ad_page():
                 "Advertisement Type", 
                 ["regular", "top", "promoted"],
                 format_func=lambda x: {
-                    "regular": "📋 Regular (Free)",
-                    "top": "⭐ Top Ad (+₦5,000)",
-                    "promoted": "🏆 Promoted (+₦10,000)"
+                    "regular": " Regular (Free)",
+                    "top": " Top Ad (+5,000)",
+                    "promoted": " Promoted (+10,000)"
                 }[x]
             )
             
@@ -985,7 +955,7 @@ def post_ad_page():
             )
         
         # Language selection for ad
-        st.markdown("### 🌍 Language Settings")
+        st.markdown("###  Language Settings")
         language = st.selectbox(
             "Post ad in language", 
             ["English", "Hausa", "Yoruba", "Igbo"],
@@ -998,13 +968,13 @@ def post_ad_page():
         # Submit button
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            submit_button = st.form_submit_button("📤 Post Advertisement", use_container_width=True)
+            submit_button = st.form_submit_button(" Post Advertisement", use_container_width=True)
         
         if submit_button:
             if not terms_accepted:
-                st.error("❌ Please accept the Terms and Conditions to proceed.")
+                st.error(" Please accept the Terms and Conditions to proceed.")
             elif not all([title, category, price, location, contact_info]):
-                st.error("❌ Please fill in all required fields marked with *")
+                st.error(" Please fill in all required fields marked with *")
             else:
                 # Save uploaded image
                 image_path = None
@@ -1042,7 +1012,7 @@ def post_ad_page():
                         ad_type
                     )
                     
-                    st.success("✅ Advertisement posted successfully!")
+                    st.success(" Advertisement posted successfully!")
                     st.balloons()
                     
                     # Clear voice session data
@@ -1053,15 +1023,15 @@ def post_ad_page():
                     st.info("Your ad is now live and visible to potential buyers!")
                     
                 except Exception as e:
-                    st.error(f"❌ Error posting advertisement: {str(e)}")
+                    st.error(f" Error posting advertisement: {str(e)}")
 
 def ads_list_page():
     """Render ads listing page"""
-    st.markdown("## 🛍️ All Advertisements")
+    st.markdown("##  All Advertisements")
     st.markdown("*Browse all available agricultural products*")
     
     # Filters section
-    st.markdown("### 🔧 Filter & Sort")
+    st.markdown("###  Filter & Sort")
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -1078,8 +1048,8 @@ def ads_list_page():
     with col3:
         filter_price_range = st.selectbox(
             "Price Range",
-            ["All Prices", "Under ₦10,000", "₦10,000 - ₦50,000", 
-             "₦50,000 - ₦100,000", "Above ₦100,000"]
+            ["All Prices", "Under 10,000", "10,000 - 50,000", 
+             "50,000 - 100,000", "Above 100,000"]
         )
     
     with col4:
@@ -1090,7 +1060,7 @@ def ads_list_page():
         )
     
     # Apply filters button
-    if st.button("🔍 Apply Filters", use_container_width=True):
+    if st.button(" Apply Filters", use_container_width=True):
         st.session_state['filters_applied'] = True
     
     # Get and display ads
@@ -1098,13 +1068,13 @@ def ads_list_page():
     
     # Apply price filter
     if filter_price_range != "All Prices":
-        if filter_price_range == "Under ₦10,000":
+        if filter_price_range == "Under 10,000":
             ads = [ad for ad in ads if ad[5] < 10000]
-        elif filter_price_range == "₦10,000 - ₦50,000":
+        elif filter_price_range == "10,000 - 50,000":
             ads = [ad for ad in ads if 10000 <= ad[5] <= 50000]
-        elif filter_price_range == "₦50,000 - ₦100,000":
+        elif filter_price_range == "50,000 - 100,000":
             ads = [ad for ad in ads if 50000 <= ad[5] <= 100000]
-        elif filter_price_range == "Above ₦100,000":
+        elif filter_price_range == "Above 100,000":
             ads = [ad for ad in ads if ad[5] > 100000]
     
     # Sort ads based on selection
@@ -1119,7 +1089,7 @@ def ads_list_page():
     # Default is "Newest First" - already ordered by created_at DESC
     
     # Display results summary
-    st.markdown(f"### 📊 Results Summary")
+    st.markdown(f"###  Results Summary")
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -1127,7 +1097,7 @@ def ads_list_page():
     
     with col2:
         avg_price = sum(ad[5] for ad in ads if ad[5]) / len(ads) if ads else 0
-        st.metric("Average Price", f"₦{avg_price:,.0f}")
+        st.metric("Average Price", f"{avg_price:,.0f}")
     
     with col3:
         unique_locations = len(set(ad[6] for ad in ads))
@@ -1137,11 +1107,11 @@ def ads_list_page():
     if ads:
         display_ads(ads, f"All Advertisements ({len(ads)} found)")
     else:
-        st.info("🔍 No advertisements found matching your criteria. Try adjusting your filters.")
+        st.info(" No advertisements found matching your criteria. Try adjusting your filters.")
 
 def about_page():
     """Render about us page"""
-    st.markdown("## 🌾 About FARMDEPOT_NG")
+    st.markdown("##  About FARMDEPOT_NG")
     
     # Hero section for about page
     st.markdown("""
@@ -1155,7 +1125,7 @@ def about_page():
     
     with col1:
         st.markdown("""
-        ### 🎯 Our Mission
+        ###  Our Mission
         
         FARMDEPOT_NG is Nigeria's premier AI-powered agricultural marketplace, designed to revolutionize 
         how agricultural products are bought and sold across the nation. We leverage cutting-edge 
@@ -1166,7 +1136,7 @@ def about_page():
         fresh, quality agricultural products reach consumers while providing farmers with 
         better market access and fair prices.
         
-        ### 🌟 Our Vision
+        ###  Our Vision
         
         To become the leading digital agricultural marketplace in West Africa, fostering 
         sustainable agricultural practices and economic growth for all stakeholders in 
@@ -1175,43 +1145,43 @@ def about_page():
     
     with col2:
         st.markdown("""
-        ### ✨ Key Features
+        ###  Key Features
         
-        - **🎤 Voice-Powered Interface**: Post and search ads using voice commands in local languages
-        - **🌍 Multilingual Support**: Available in English, Hausa, Yoruba, and Igbo
-        - **🤖 AI Integration**: Smart command interpretation and product categorization
-        - **📱 User-Friendly Design**: Simple interface designed for all user levels
-        - **🔐 Secure Platform**: Safe and secure trading environment
-        - **📊 Real-time Analytics**: Market insights and pricing trends
-        - **🚚 Logistics Support**: Connect with delivery partners
-        - **💰 Payment Integration**: Secure payment processing
+        - ** Voice-Powered Interface**: Post and search ads using voice commands in local languages
+        - ** Multilingual Support**: Available in English, Hausa, Yoruba, and Igbo
+        - ** AI Integration**: Smart command interpretation and product categorization
+        - ** User-Friendly Design**: Simple interface designed for all user levels
+        - ** Secure Platform**: Safe and secure trading environment
+        - ** Real-time Analytics**: Market insights and pricing trends
+        - ** Logistics Support**: Connect with delivery partners
+        - ** Payment Integration**: Secure payment processing
         """)
     
     st.markdown("---")
     
     # Who we serve section
-    st.markdown("### 👥 Who We Serve")
+    st.markdown("###  Who We Serve")
     
     cols = st.columns(4)
     
     services = [
         {
-            "title": "🌾 Farmers",
+            "title": " Farmers",
             "desc": "Sell your produce directly to buyers, access market prices, and expand your reach beyond local markets.",
             "benefits": ["Direct market access", "Better prices", "Reduced middlemen"]
         },
         {
-            "title": "🏪 Traders",
+            "title": " Traders",
             "desc": "Find quality agricultural products, connect with reliable suppliers, and expand your business network.",
             "benefits": ["Quality sourcing", "Network expansion", "Bulk purchasing"]
         },
         {
-            "title": "🏭 Processors",
+            "title": " Processors",
             "desc": "Source raw materials for your operations, ensure consistent supply chains, and reduce procurement costs.",
             "benefits": ["Consistent supply", "Cost reduction", "Quality assurance"]
         },
         {
-            "title": "🛒 Consumers",
+            "title": " Consumers",
             "desc": "Access fresh, quality agricultural products directly from farmers and verified sellers.",
             "benefits": ["Fresh products", "Competitive prices", "Quality guarantee"]
         }
@@ -1242,7 +1212,7 @@ def about_page():
     st.markdown("---")
     
     # Statistics section
-    st.markdown("### 📈 Our Impact")
+    st.markdown("###  Our Impact")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -1270,18 +1240,18 @@ def about_page():
     st.markdown("---")
     
     # Contact information
-    st.markdown("### 📞 Get in Touch")
+    st.markdown("###  Get in Touch")
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("""
-        **📧 Email:**  
+        ** Email:**  
         - General: info@farmdepot.ng  
         - Support: support@farmdepot.ng  
         - Business: business@farmdepot.ng
         
-        **📞 Phone:**  
+        ** Phone:**  
         - Main: +234-XXX-XXX-XXXX  
         - Support: +234-XXX-XXX-XXXY  
         - WhatsApp: +234-XXX-XXX-XXXZ
@@ -1289,13 +1259,13 @@ def about_page():
     
     with col2:
         st.markdown("""
-        **📍 Address:**  
+        ** Address:**  
         FARMDEPOT_NG Headquarters  
         Plot 123, Agricultural Innovation Hub  
         Victoria Island, Lagos  
         Nigeria
         
-        **🕒 Business Hours:**  
+        ** Business Hours:**  
         - Monday - Friday: 8:00 AM - 6:00 PM  
         - Saturday: 9:00 AM - 4:00 PM  
         - Sunday: Emergency support only
@@ -1303,26 +1273,26 @@ def about_page():
 
 def blog_page():
     """Render blog page"""
-    st.markdown("## 📝 Agricultural Blog & News")
+    st.markdown("##  Agricultural Blog & News")
     st.markdown("*Stay updated with the latest in Nigerian agriculture*")
     
     # Blog categories
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        if st.button("🌾 Farming Tips", use_container_width=True):
+        if st.button(" Farming Tips", use_container_width=True):
             st.session_state['blog_filter'] = 'farming'
     
     with col2:
-        if st.button("📈 Market Trends", use_container_width=True):
+        if st.button(" Market Trends", use_container_width=True):
             st.session_state['blog_filter'] = 'market'
     
     with col3:
-        if st.button("🔬 Technology", use_container_width=True):
+        if st.button(" Technology", use_container_width=True):
             st.session_state['blog_filter'] = 'technology'
     
     with col4:
-        if st.button("📰 News", use_container_width=True):
+        if st.button(" News", use_container_width=True):
             st.session_state['blog_filter'] = 'news'
     
     st.markdown("---")
@@ -1334,11 +1304,11 @@ def blog_page():
             "content": """Discover the latest agricultural techniques that can help increase your farm productivity and profitability. From precision agriculture to sustainable farming practices, learn how technology is transforming Nigerian agriculture.
             
             Key points covered:
-            • Smart irrigation systems
-            • Soil health management
-            • Crop rotation strategies
-            • Pest management techniques
-            • Market timing for maximum profits""",
+            � Smart irrigation systems
+            � Soil health management
+            � Crop rotation strategies
+            � Pest management techniques
+            � Market timing for maximum profits""",
             "author": "Dr. Adebayo Ogun",
             "date": "January 15, 2024",
             "category": "farming",
@@ -1350,11 +1320,11 @@ def blog_page():
             "content": """An in-depth analysis of current market trends and emerging opportunities in the Nigerian agricultural sector. Understanding market dynamics is crucial for both farmers and traders to make informed decisions.
             
             Trending products:
-            • High-value crops gaining popularity
-            • Export opportunities
-            • Value-added products
-            • Regional price variations
-            • Seasonal demand patterns""",
+            � High-value crops gaining popularity
+            � Export opportunities
+            � Value-added products
+            � Regional price variations
+            � Seasonal demand patterns""",
             "author": "Sarah Mohammed",
             "date": "January 10, 2024",
             "category": "market",
@@ -1363,14 +1333,14 @@ def blog_page():
         },
         {
             "title": "Sustainable Farming: Protecting Our Future",
-            "content": """Learn about sustainable farming methods that protect the environment while maintaining profitability. Sustainable agriculture is not just good for the planet—it's good for business too.
+            "content": """Learn about sustainable farming methods that protect the environment while maintaining profitability. Sustainable agriculture is not just good for the planet�it's good for business too.
             
             Sustainable practices include:
-            • Organic farming methods
-            • Water conservation techniques
-            • Biodiversity preservation
-            • Carbon footprint reduction
-            • Community-supported agriculture""",
+            � Organic farming methods
+            � Water conservation techniques
+            � Biodiversity preservation
+            � Carbon footprint reduction
+            � Community-supported agriculture""",
             "author": "Prof. Chukwu Okafor",
             "date": "January 5, 2024",
             "category": "farming",
@@ -1382,11 +1352,11 @@ def blog_page():
             "content": """Explore how artificial intelligence and digital technologies are transforming Nigerian agriculture. From drone monitoring to predictive analytics, the digital revolution is here.
             
             AI applications in agriculture:
-            • Crop monitoring with drones
-            • Weather prediction models
-            • Disease detection systems
-            • Market price predictions
-            • Automated farming equipment""",
+            � Crop monitoring with drones
+            � Weather prediction models
+            � Disease detection systems
+            � Market price predictions
+            � Automated farming equipment""",
             "author": "Eng. Fatima Aliyu",
             "date": "December 28, 2023",
             "category": "technology",
@@ -1398,11 +1368,11 @@ def blog_page():
             "content": """Latest updates on government initiatives and policies aimed at boosting agricultural productivity and supporting farmers across Nigeria.
             
             Recent policy developments:
-            • Agricultural loans and grants
-            • Subsidy programs
-            • Infrastructure development
-            • Market access initiatives
-            • Training and capacity building""",
+            � Agricultural loans and grants
+            � Subsidy programs
+            � Infrastructure development
+            � Market access initiatives
+            � Training and capacity building""",
             "author": "Policy Research Team",
             "date": "December 20, 2023",
             "category": "news",
@@ -1458,7 +1428,7 @@ def blog_page():
     
     # Newsletter subscription
     st.markdown("---")
-    st.markdown("### 📬 Subscribe to Our Newsletter")
+    st.markdown("###  Subscribe to Our Newsletter")
     
     col1, col2 = st.columns([2, 1])
     
@@ -1472,9 +1442,9 @@ def blog_page():
                 ["Farming Tips", "Market Trends", "Technology Updates", "Policy News", "Weather Updates"]
             )
             
-            if st.form_submit_button("📧 Subscribe", use_container_width=True):
+            if st.form_submit_button(" Subscribe", use_container_width=True):
                 if email:
-                    st.success("✅ Thank you for subscribing! You'll receive our next newsletter soon.")
+                    st.success(" Thank you for subscribing! You'll receive our next newsletter soon.")
                 else:
                     st.error("Please enter a valid email address.")
     
@@ -1487,7 +1457,7 @@ def blog_page():
             border-radius: 10px; 
             text-align: center;
         '>
-            <h4 style='margin-bottom: 1rem;'>📊 Newsletter Stats</h4>
+            <h4 style='margin-bottom: 1rem;'> Newsletter Stats</h4>
             <div style='font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;'>2,500+</div>
             <div style='opacity: 0.9;'>Active Subscribers</div>
             <div style='font-size: 1.5rem; font-weight: bold; margin: 1rem 0 0.5rem 0;'>Weekly</div>
@@ -1497,13 +1467,13 @@ def blog_page():
 
 def contact_page():
     """Render contact us page"""
-    st.markdown("## 📞 Contact FARMDEPOT_NG")
+    st.markdown("##  Contact FARMDEPOT_NG")
     st.markdown("*We're here to help you succeed in agricultural commerce*")
     
     col1, col2 = st.columns([1.5, 1])
     
     with col1:
-        st.markdown("### 💬 Send us a Message")
+        st.markdown("###  Send us a Message")
         
         with st.form("contact_form"):
             col_a, col_b = st.columns(2)
@@ -1542,14 +1512,14 @@ def contact_page():
             
             col_x, col_y, col_z = st.columns([1, 2, 1])
             with col_y:
-                submit_button = st.form_submit_button("📤 Send Message", use_container_width=True)
+                submit_button = st.form_submit_button(" Send Message", use_container_width=True)
             
             if submit_button:
                 if not all([name, email, subject, message]):
-                    st.error("❌ Please fill in all required fields marked with *")
+                    st.error(" Please fill in all required fields marked with *")
                 else:
                     # Here you would typically save to database or send email
-                    st.success("✅ Message sent successfully! We'll get back to you within 24 hours.")
+                    st.success(" Message sent successfully! We'll get back to you within 24 hours.")
                     st.balloons()
                     
                     # Show confirmation details
@@ -1565,7 +1535,7 @@ def contact_page():
                     """)
     
     with col2:
-        st.markdown("### 📍 Contact Information")
+        st.markdown("###  Contact Information")
         
         st.markdown("""
         <div style='
@@ -1575,24 +1545,24 @@ def contact_page():
             border-radius: 12px; 
             margin-bottom: 1.5rem;
         '>
-            <h4 style='margin-bottom: 1.5rem; text-align: center;'>🏢 Head Office</h4>
+            <h4 style='margin-bottom: 1.5rem; text-align: center;'> Head Office</h4>
             
             <div style='margin-bottom: 1rem;'>
-                <strong>📧 Email Addresses:</strong><br>
-                • General: info@farmdepot.ng<br>
-                • Support: support@farmdepot.ng<br>
-                • Business: business@farmdepot.ng
+                <strong> Email Addresses:</strong><br>
+                � General: info@farmdepot.ng<br>
+                � Support: support@farmdepot.ng<br>
+                � Business: business@farmdepot.ng
             </div>
             
             <div style='margin-bottom: 1rem;'>
-                <strong>📞 Phone Numbers:</strong><br>
-                • Main: +234-XXX-XXX-XXXX<br>
-                • Support: +234-XXX-XXX-XXXY<br>
-                • WhatsApp: +234-XXX-XXX-XXXZ
+                <strong> Phone Numbers:</strong><br>
+                � Main: +234-XXX-XXX-XXXX<br>
+                � Support: +234-XXX-XXX-XXXY<br>
+                � WhatsApp: +234-XXX-XXX-XXXZ
             </div>
             
             <div style='margin-bottom: 1rem;'>
-                <strong>📍 Address:</strong><br>
+                <strong> Address:</strong><br>
                 FARMDEPOT_NG Headquarters<br>
                 Plot 123, Agricultural Way<br>
                 Victoria Island, Lagos<br>
@@ -1603,7 +1573,7 @@ def contact_page():
         
         # Business hours
         st.markdown("""
-        ### 🕒 Business Hours
+        ###  Business Hours
         
         **Monday - Friday:**  
         8:00 AM - 6:00 PM (WAT)
@@ -1619,26 +1589,26 @@ def contact_page():
         """)
         
         # Quick contact options
-        st.markdown("### ⚡ Quick Contact")
+        st.markdown("###  Quick Contact")
         
         col_i, col_ii = st.columns(2)
         
         with col_i:
-            if st.button("📧 Email Us", use_container_width=True):
+            if st.button(" Email Us", use_container_width=True):
                 st.info("Opening your default email client...")
         
         with col_ii:
-            if st.button("💬 WhatsApp", use_container_width=True):
+            if st.button(" WhatsApp", use_container_width=True):
                 st.info("Opening WhatsApp...")
         
         # Social media
-        st.markdown("### 🌐 Follow Us")
+        st.markdown("###  Follow Us")
         
         social_links = [
-            {"name": "Facebook", "icon": "📘", "url": "@FarmDepotNG"},
-            {"name": "Twitter", "icon": "🐦", "url": "@FarmDepotNG"},
-            {"name": "Instagram", "icon": "📷", "url": "@FarmDepotNG"},
-            {"name": "LinkedIn", "icon": "💼", "url": "FarmDepot Nigeria"}
+            {"name": "Facebook", "icon": "", "url": "@FarmDepotNG"},
+            {"name": "Twitter", "icon": "", "url": "@FarmDepotNG"},
+            {"name": "Instagram", "icon": "", "url": "@FarmDepotNG"},
+            {"name": "LinkedIn", "icon": "", "url": "FarmDepot Nigeria"}
         ]
         
         for social in social_links:
@@ -1654,7 +1624,7 @@ def render_footer():
     
     with col1:
         st.markdown("""
-        **🌾 FARMDEPOT_NG**
+        ** FARMDEPOT_NG**
         
         Nigeria's premier agricultural marketplace connecting farmers, traders, and consumers nationwide.
         
@@ -1663,38 +1633,38 @@ def render_footer():
     
     with col2:
         st.markdown("""
-        **🔗 Quick Links**
+        ** Quick Links**
         
-        • Home
-        • About Us
-        • Post Advertisement
-        • Browse Ads
-        • Blog & News
-        • Contact Support
+        � Home
+        � About Us
+        � Post Advertisement
+        � Browse Ads
+        � Blog & News
+        � Contact Support
         """)
     
     with col3:
         st.markdown("""
-        **📋 Categories**
+        ** Categories**
         
-        • Tubers & Root Crops
-        • Grains & Cereals
-        • Vegetables & Fruits
-        • Livestock & Poultry
-        • Farm Equipment
-        • Processed Foods
+        � Tubers & Root Crops
+        � Grains & Cereals
+        � Vegetables & Fruits
+        � Livestock & Poultry
+        � Farm Equipment
+        � Processed Foods
         """)
     
     with col4:
         st.markdown("""
-        **📞 Support**
+        ** Support**
         
-        • Email: support@farmdepot.ng
-        • Phone: +234-XXX-XXX-XXXX
-        • WhatsApp Support
-        • Help Center
-        • Terms of Service
-        • Privacy Policy
+        � Email: support@farmdepot.ng
+        � Phone: +234-XXX-XXX-XXXX
+        � WhatsApp Support
+        � Help Center
+        � Terms of Service
+        � Privacy Policy
         """)
     
     # Copyright section
@@ -1712,10 +1682,10 @@ def render_footer():
             &copy; 2024 <strong>FARMDEPOT_NG</strong>. All rights reserved.
         </p>
         <p style='font-size: 0.9rem; color: #888;'>
-            🌾 Connecting Farmers, Traders, and Consumers Across Nigeria 🇳🇬
+             Connecting Farmers, Traders, and Consumers Across Nigeria 
         </p>
         <p style='font-size: 0.8rem; color: #999; margin-top: 1rem;'>
-            Built with ❤️ for Nigerian Agriculture | Powered by AI Technology
+            Built with  for Nigerian Agriculture | Powered by AI Technology
         </p>
     </div>
     """, unsafe_allow_html=True)
